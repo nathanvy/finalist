@@ -1,0 +1,142 @@
+a {
+    color: #000;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #000;
+}
+
+a:hover {
+    color: #04a;
+}
+
+body {
+    background-color: #eee;
+    color: #111;
+}
+
+
+.lineitem {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    flex-flow: wrap;
+}
+
+.lineitem input {
+    margin-left: auto;
+    margin-right: 1rem;
+}
+
+.lineitem input[type=text] {
+    margin-right: auto;
+    margin-left: 1rem;
+}
+
+.lineitem hr {
+    width: 100%;
+}
+
+.lineitem button {
+    margin-left: 1rem;
+    margin-right: 1rem;
+}
+
+.lineitem .fa-regular {
+    margin-right: 1rem;
+}
+
+.listlink {
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+}
+
+.modal {
+    width: 100%;
+    margin-left: 1rem;
+}
+
+#plus-btn {
+    position: fixed;
+    margin-right: 4rem;
+    margin-bottom: 4rem;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+}
+
+.errormsg {
+    background-color: #a22;
+    color: #eee;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+.errormsg p {
+    text-align: center;
+}
+
+#main div.lineitem:nth-child(even){
+    background-color: #f5f5f5;
+}
+
+#nav {
+  background-color: #333;
+  overflow: hidden;
+}
+
+#nav a {
+  float: left;
+  display: block;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+#nav .icon {
+  display: none;
+}
+
+.strike {
+    text-decoration: line-through;
+    text-decoration-thickness: 0.125rem;
+}
+
+ /* When the screen is less than 600 pixels wide, hide all links, except for the first one ("Home"). Show the link that contains should open and close the topnav (.icon) */
+@media screen and (max-width: 600px) {
+    #nav a {
+        display: none;
+    }
+    #nav a.icon {
+        float: right;
+        display: block;
+    }
+}
+
+/* The "responsive" class is added to the topnav with JavaScript when the user clicks on the icon. This class makes the topnav look good on small screens (display the links vertically instead of horizontally) */
+@media screen and (max-width: 600px) {
+    #nav.vis {
+        position: relative;
+    }
+    
+    #nav.vis a.icon {
+        position: absolute;
+        right: 0;
+        top: 0;
+    }
+    #nav.vis a {
+        float: none;
+        display: block;
+        text-align: left;
+    }
+
+    .lineitem input {
+        display: none;
+    }
+
+    .lineitem i:last-child {
+        margin-left: auto;
+    }
+} 
