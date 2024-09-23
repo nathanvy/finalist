@@ -51,6 +51,14 @@ func deleteListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	contentsSql := "delete from fnlst.contentlist where listnumber = $1"
+	_, err = pool.Exec(context.Background(), contentsSql, ListID)
+	if err != nil {
+		log.Println("Database error:", err)
+		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		return
+	}
+
 	jsonResponse(w, http.StatusOK, map[string]string{"success": "List successfully deleted."})
 
 }
