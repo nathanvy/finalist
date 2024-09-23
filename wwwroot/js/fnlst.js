@@ -448,7 +448,7 @@ async function insertListDB(newLine){
 async function insertListItemDB(newLine){
     var payload = new Object();
     var inputs = newLine.getElementsByTagName("input");
-    payload.itemname = inputs[0].value;
+    payload.payload = inputs[0].value;
     var listid = window.location.pathname.split('/')[2];
     const uri = `${endPoint}list/${listid}/newitem`;
     await fetch(uri, {
@@ -461,21 +461,21 @@ async function insertListItemDB(newLine){
     })
         .then(response => response.json())
         .then(data => {
-            if(data.success === true) {
+            if(data.result) {
                 var para = document.createElement("p");
                 para.innerText = inputs[0].value;
                 newLine.replaceChildren(para);
-                newLine.id = data.message;
+                newLine.id = data.result;
 
                 const frag = new DocumentFragment();
                 const cb = document.createElement('input');
                 cb.type = "checkbox";
-                cb.addEventListener('change', function () { toggleStrikeThru(data.message); });
+                cb.addEventListener('change', function () { toggleStrikeThru(data.result); });
                 frag.appendChild(cb);
                 const editicon = document.createElement('i');
                 editicon.classList.add('fa-regular');
                 editicon.classList.add('fa-pen-to-square');
-                editicon.addEventListener('click', function () { toggleEditLineItem(data.message) });
+                editicon.addEventListener('click', function () { toggleEditLineItem(data.result) });
                 frag.appendChild(editicon);
                 newLine.appendChild(frag);
             }
