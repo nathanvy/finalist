@@ -186,8 +186,11 @@ async function actuallyDeleteLineItem(id) {
         },
         "method": "GET"
     })
-        .then( handleLocation() );
-    
+        .then(() => {
+            var target = document.getElementById(id);
+            target.replaceChildren();
+            target.remove();
+        });
 }
 
 function setEndOfContenteditable(contentEditableElement) {
