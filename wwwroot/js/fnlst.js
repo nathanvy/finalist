@@ -3,11 +3,10 @@
 // yes it's all one giant file fight me
 
 const config = {
-    domain: '127.0.0.1',
-    port: '8585',
+    domain: 'finalist.0x85.org',
     path: '/api/'
 };
-const endPoint = `http://${config.domain}:${config.port}${config.path}`;
+const endPoint = `https://${config.domain}${config.path}`;
 
 const routes = [
     {
@@ -37,7 +36,7 @@ const routes = [
 ];
 
 async function doLogout(){
-    const s = `http://${config.domain}:${config.port}/pubapi/logout`;
+    const s = `https://${config.domain}/pubapi/logout`;
     await fetch(s, {
         method: 'GET',
     })
@@ -448,7 +447,7 @@ async function LoginSubmit(event) {
     payload.username = uname;
     payload.password = pwd;
 
-    const uri = `http://${config.domain}:${config.port}/pubapi/login`;
+    const uri = `https://${config.domain}/pubapi/login`;
     await fetch(uri, {
         "headers": {
             'Accept': 'application/json, text/plain',
