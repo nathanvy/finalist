@@ -508,8 +508,6 @@ async function shareSubmit(id) {
         });
     });
 
-    console.log(formData);
-
     const s = `${endPoint}list/${id}/setsharedusers`;
     const resp = await fetch(s, {
         "headers": {
@@ -540,7 +538,6 @@ async function renderListSettingsPage(id) {
     navbar.insertBefore(backlink, hamburger);
     
     const users = await fetchUsers(id);
-    console.log(users);
     if (users.error) {
         window.history.pushState({}, '', "/");
         handleLocation();
