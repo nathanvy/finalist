@@ -236,18 +236,36 @@ async function actuallyDeleteLineItem(id) {
     payload.id = id;
     
     const uri = `${endPoint}list/${listid}/delete/${id}`;
-    await fetch(uri, {
+    const resp = await fetch(uri, {
         "headers": {
             'Accept': 'application/json, text/plain',
             'Content-Type': 'application/json'
         },
         "method": "GET"
-    })
-        .then(() => {
-            var target = document.getElementById(id);
-            target.replaceChildren();
-            target.remove();
-        });
+    });
+    const jsonresponse = await resp.json();
+    if( jsonresponse.success ) {
+        var target = document.getElementById(id);
+        target.replaceChildren();
+        target.remove();
+    }
+    else {
+        var frag = new DocumentFragment();
+        const d = document.createElement('div');
+        const p = document.createElement('p');
+        d.classList.add('errormsg');
+        p.innerText = jsonresponse.error;
+        d.appendChild(p);
+        frag.appendChild(d);
+        const parent = document.getElementById('main');
+        parent.prepend(frag);
+        
+        setTimeout(() => {
+            if (d) {
+                d.remove();
+            }
+        }, 5000);
+    }
 }
 
 function setEndOfContenteditable(contentEditableElement) {
@@ -483,17 +501,35 @@ async function makeConfirmListDeleteModal(id) {
 
 async function actuallyDeleteList(id) {    
     const uri = `${endPoint}deletelist/${id}`;
-    await fetch(uri, {
+    const response = await fetch(uri, {
         "headers": {
             'Accept': 'application/json, text/plain',
             'Content-Type': 'application/json'
         },
         "method": "GET"
-    })
-        .then(() => {
+    });
+    const resp = await response.json()
+    if (resp.success) {
             window.history.pushState({}, '', "/");
             handleLocation();
-        });
+    }
+    else {
+        var frag = new DocumentFragment();
+        const d = document.createElement('div');
+        const p = document.createElement('p');
+        d.classList.add('errormsg');
+        p.innerText = resp.error;
+        d.appendChild(p);
+        frag.appendChild(d);
+        const parent = document.getElementById('main');
+        parent.prepend(frag);
+        
+        setTimeout(() => {
+            if (d) {
+                d.remove();
+            }
+        }, 5000);
+    }
 }
 
 async function shareSubmit(id) {
