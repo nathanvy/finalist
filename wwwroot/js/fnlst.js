@@ -29,6 +29,10 @@ const routes = [
     {
         path: '/list/:id',
         callback: (params) => { return renderListContents(params.id); }
+    },
+    {
+        path: '/list/:id/listsettings',
+        callback: (params) => { return renderListSettingsPage(params.id); }
     }
 ];
 
@@ -53,13 +57,55 @@ async function doLogout(){
         })
 }
 
+async function renderLogoutButton() {
+    //where e is the target element
+    const logoutlink = document.createElement('a');
+    logoutlink.href = "/logout";
+    logoutlink.id = "logout-btn";
+    logoutlink.innerText = "Logout";
+    const navbar = document.getElementById('nav');
+    const hamburger = document.getElementById("#hamburger");
+    navbar.insertBefore(logoutlink, hamburger);
+}
+
+async function renderListSettingsLink() {
+    const hamburger = document.getElementById("#hamburger");
+    const settingslink = document.createElement('a');
+    settingslink.href = "/list/6/listsettings";
+    settingslink.id = "list-settings-btn";
+    settingslink.innerText = "List Settings";
+    navbar.insertBefore(settingslink, hamburger);
+}
+
+function clearAndReRender(target) {
+    target.replaceChildren();
+
+    const backlink = document.getElementById("back-btn");
+    if (backlink != null) {
+        backlink.remove();
+    }
+    
+    const logoutlink = document.getElementById("logout-btn");
+    if (logoutlink != null) {
+        logoutlink.remove();
+    }
+    
+    const settingsLink = document.getElementById("list-settings-btn");
+    if (settingsLink != null) {
+        settingsLink.remove();
+    }
+}
+
 async function renderAboutPage(){
     const target = document.getElementById("main");
-    target.replaceChildren();
-    const s = `http://${config.domain}:${config.port}/pubapi/about`;
+    clearAndReRender(target);
+    const s = `${endPoint}about`;
     const fetchresponse = await fetch(s, {
         method: 'GET',
     });
+    if( fetchresponse.headers.get("X-Logged-In") === "true" ){
+        await renderLogoutButton();
+    }
     const resp = await fetchresponse.json();
     const ver = resp.payload;
     const para = document.createElement('p');
@@ -72,6 +118,9 @@ async function fetchListContents(id) {
     const fetchresponse = await fetch(s, {
         method: 'GET',
     });
+    if( fetchresponse.headers.get("X-Logged-In") === "true" ){
+        await renderLogoutButton();
+    }
     const resp = await fetchresponse.json();
     return resp;
 }
@@ -82,18 +131,26 @@ async function fetchListsByUser() {
         method: 'GET',
     })
         .then(response => {
-            if (response.status === 401) {
-                const redirectUrl = response.headers.get('Location');
-                var payload = new Object;
-                payload.error = true;
-                payload.redirect = redirectUrl;
-                return payload;
+            if( response.headers.get("X-Logged-In") === "true" ){
+                renderLogoutButton();
             }
-            else {
-                return response.json();
-            }
+            
+            return response.json();
+            
         })
 
+    return resp;
+}
+
+async function fetchUsers(id) {
+    const s = `${endPoint}listusers/${id}`;
+    const fetchresponse = await fetch( s, {
+        method: 'GET',
+    });
+    if( fetchresponse. headers.get("X-Logged-In") === "true"){
+        await renderLogoutButton();
+    }
+    const resp = await fetchresponse.json();
     return resp;
 }
 
@@ -264,11 +321,20 @@ async function toggleEditLineItem(id) {
 }
 
 async function renderListContents(id) {
-    const targetNode = document.getElementById('main');
-    targetNode.replaceChildren();
+    const targetNode = document.getElementById("main");
+    const navbar = document.getElementById("nav");
+    clearAndReRender(targetNode);
+
+    const hamburger = document.getElementById("#hamburger");
+    const settingslink = document.createElement('a');
+    settingslink.href = "/list/" + id + "/listsettings";
+    settingslink.id = "list-settings-btn";
+    settingslink.innerText = "List Settings";
+    navbar.insertBefore(settingslink, hamburger);
+    
     const items = await fetchListContents(id);
-    if (items != null  && items.redirect) {
-        window.history.pushState({}, '', items.redirect);
+    if (items != null  && items.error) {
+        window.history.pushState({}, '', '/login');
         handleLocation();
     }
     else if (items != null) {
@@ -298,7 +364,7 @@ async function renderListContents(id) {
 
 async function renderLoginForm() {
     const targetNode = document.getElementById('main');
-    targetNode.replaceChildren();
+    clearAndReRender(targetNode)
     const frag = new DocumentFragment();
     const title = document.createElement('h2');
     title.innerText = "Login";
@@ -375,14 +441,162 @@ async function LoginSubmit(event) {
     })
         .then((response) => response.json())
         .then(() => {
-                window.history.pushState({}, '', "/");
-                handleLocation();
+            window.history.pushState({}, '', "/");
+            handleLocation();
         })
 }
 
+async function makeConfirmListDeleteModal(id) {
+    const parent = document.getElementById("main");
+    const modal = document.createElement('div');
+    modal.classList.add('modal');
+    modal.id = "confirm-delete-modal";
+
+    const modalcontent = document.createElement('div');
+    modalcontent.classList.add('modal-content');
+    const text = document.createElement('p');
+    text.innerText = "Actually delete this list and its contents?  Cannot be undone!";
+
+    const yesbtn = document.createElement('button');
+    yesbtn.setAttribute('type', 'button');
+    yesbtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        return actuallyDeleteList(id);
+    }, false);
+    yesbtn.innerText = "Yes";
+    
+    const nobtn = document.createElement('button');
+    nobtn.setAttribute('type', 'button');
+    nobtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        return removeModal(modal);
+    }, false);
+    nobtn.innerText = "No";
+
+    const frag = new DocumentFragment();
+    frag.append(modal);
+    modal.append(text, yesbtn, nobtn);
+    
+    parent.appendChild(frag);
+
+}
+
+async function actuallyDeleteList(id) {    
+    const uri = `${endPoint}deletelist/${id}`;
+    await fetch(uri, {
+        "headers": {
+            'Accept': 'application/json, text/plain',
+            'Content-Type': 'application/json'
+        },
+        "method": "GET"
+    })
+        .then(() => {
+            window.history.pushState({}, '', "/");
+            handleLocation();
+        });
+}
+
+async function shareSubmit(id) {
+    const form = document.getElementById("share-list-form");
+    const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+    const formData = [];
+
+    checkboxes.forEach(checkbox => {
+        formData.push({
+            key: parseInt(checkbox.name, 10),
+            value: checkbox.checked // Boolean value indicating checked/unchecked
+        });
+    });
+
+    console.log(formData);
+
+    const s = `${endPoint}list/${id}/setsharedusers`;
+    const resp = await fetch(s, {
+        "headers": {
+            'Accept': 'application/json, text/plain',
+            'Content-Type': 'application/json'
+        },
+        "method": "POST",
+        "body": JSON.stringify(formData)
+    });
+    const response = await resp.json();
+
+    if (response.error) {
+        //handle error
+        console.log("error saving share settings");
+    } 
+}
+
+async function renderListSettingsPage(id) {
+    const targetNode = document.getElementById("main");
+    clearAndReRender(targetNode);
+
+    const backlink = document.createElement('a');
+    backlink.href = `/list/${id}`;
+    backlink.id = "back-btn";
+    backlink.innerText = "Back to List";
+    const navbar = document.getElementById('nav');
+    const hamburger = document.getElementById("#hamburger");
+    navbar.insertBefore(backlink, hamburger);
+    
+    const users = await fetchUsers(id);
+    console.log(users);
+    if (users.error) {
+        window.history.pushState({}, '', "/");
+        handleLocation();
+    }
+    else {
+        const frag = new DocumentFragment();
+        const hthree = document.createElement("h3");
+        hthree.innerText = "Share This List With:";
+        frag.appendChild(hthree);
+
+        const form = document.createElement("form");
+        form.id = "share-list-form";
+        users.forEach(item => {
+            const ipt = document.createElement("input");
+            ipt.type = "checkbox";
+            ipt.name = item.index;
+            ipt.id = item.username;
+            ipt.checked = item.shared;
+            const lbl = document.createElement("label");
+            lbl.htmlFor = ipt.id;
+            lbl.innerText = item.username;
+            const br = document.createElement("br");
+            form.appendChild(ipt);
+            form.appendChild(lbl);
+            form.appendChild(br);
+        });
+
+        const btn = document.createElement('button');
+        btn.innerText = "Share";
+        btn.setAttribute("type", "submit");
+        btn.classList.add("button");
+        form.appendChild(btn);
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            shareSubmit(id);
+        });
+        frag.appendChild(form);
+
+        const hthreetwo = document.createElement("h3"); //lol
+        hthreetwo.innerText = "Delete This List";
+        const delbtn = document.createElement('button');
+        delbtn.setAttribute('type', 'button');
+        delbtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            makeConfirmListDeleteModal(id);
+        }, false);
+        delbtn.innerText = "Delete List";
+        frag.append(hthreetwo, delbtn);
+        targetNode.appendChild(frag);
+    }
+}
+
 async function renderListOverview() {
-    const targetNode = document.getElementById('main');
-    targetNode.replaceChildren();
+    const targetNode = document.getElementById("main");
+    clearAndReRender(targetNode);
     const lists = await fetchListsByUser();
     if (lists.error) {
         window.history.pushState({}, '', "/login");
@@ -590,6 +804,14 @@ async function route(e) {
         e.stopPropagation();
         window.history.pushState({}, '', e.target.href);
         await handleLocation(true);
+    }
+}
+
+async function getAuthCookie() {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; auth=`);
+    if (parts.length === 2) {
+        return parts.pop().split(';').shift();
     }
 }
 

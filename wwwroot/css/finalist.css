@@ -76,6 +76,10 @@ body {
     text-align: center;
 }
 
+#share-list-form > button {
+    margin: 1rem 0;
+}
+
 #main div.lineitem:nth-child(even){
     background-color: #f5f5f5;
 }

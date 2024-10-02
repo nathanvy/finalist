@@ -21,7 +21,8 @@ func authorize(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("auth")
 		if err != nil || cookie.Value == "" {
-			http.Error(w, "Unauthorized: bad session", http.StatusUnauthorized)
+			jsonResponse(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized: bad session"})
+			//http.Error(w, "Unauthorized: bad session", http.StatusUnauthorized)
 			return
 		}
 
@@ -30,15 +31,18 @@ func authorize(next http.Handler) http.Handler {
 		err = pool.QueryRow(context.Background(), "select account from fnlst.sessions where sid = $1", sessid).Scan(&accountID)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Unauthorized: bad session", http.StatusUnauthorized) //jsonresponse these
+				jsonResponse(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized: bad session"})
+				//http.Error(w, "Unauthorized: bad session", http.StatusUnauthorized) //jsonresponse these
 			} else {
 				log.Println("Error querying the databse:", err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Guru Meditation"})
+				//http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 			return
 		}
 		//session is valid, can proceed now
 		ctx := context.WithValue(r.Context(), "accountID", accountID)
+		w.Header().Set("X-Logged-In", "true") //so the front end can do conditional rendering
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -105,18 +109,22 @@ func main() {
 	pub := r.PathPrefix("/pubapi").Subrouter()
 	pub.HandleFunc("/login", loginHandler).Methods(http.MethodPost)
 	pub.HandleFunc("/logout", logoutHandler).Methods(http.MethodGet)
-	pub.HandleFunc("/about", aboutHandler).Methods(http.MethodGet)
 
+	//authorized routes
 	api := r.PathPrefix("/api").Subrouter()
 	api.Use(authorize)
+	api.HandleFunc("/about", aboutHandler).Methods(http.MethodGet)
 	api.HandleFunc("/list/{id}/newitem", newListItemHandler).Methods(http.MethodPost)
 	api.HandleFunc("/list/{id}/delete/{item}", listItemDeleteHandler).Methods(http.MethodGet)
 	api.HandleFunc("/list/{id}/update/{item}", listItemUpdateHandler).Methods(http.MethodPost)
 	api.HandleFunc("/newlist", newListHandler).Methods(http.MethodPost)
-	api.HandleFunc("/deletelist/{id}", deleteListHandler).Methods(http.MethodPost)
+	api.HandleFunc("/deletelist/{id}", deleteListHandler).Methods(http.MethodGet)
 	api.HandleFunc("/listview", listOverviewHandler).Methods(http.MethodGet)
 	api.HandleFunc("/list/{id}", listviewHandler).Methods(http.MethodGet)
+	api.HandleFunc("/listusers/{id}", listUsersHandler).Methods(http.MethodGet)
+	api.HandleFunc("/list/{id}/setsharedusers", setSharedUsersHandler).Methods(http.MethodPost)
 
+	//catchall
 	r.PathPrefix("/").Handler(fservFallback(staticDir))
 
 	http.Handle("/", r)

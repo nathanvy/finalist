@@ -19,19 +19,11 @@ func deleteListHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ListID := vars["id"]
 
-	var pld GenericPayload
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&pld)
-	if err != nil {
-		jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "Bad Request"})
-		return
-	}
-
 	accountID := r.Context().Value("accountID").(int)
 
 	var count int
 	sql := "select count(*) from fnlst.permissions where list_id = $1 and user_id = $2"
-	err = pool.QueryRow(context.Background(), sql, ListID, accountID).Scan(&count)
+	err := pool.QueryRow(context.Background(), sql, ListID, accountID).Scan(&count)
 	if err != nil {
 		log.Println("Database error:", err)
 		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
@@ -60,7 +52,6 @@ func deleteListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse(w, http.StatusOK, map[string]string{"success": "List successfully deleted."})
-
 }
 
 func newListItemHandler(w http.ResponseWriter, r *http.Request) {
@@ -284,6 +275,84 @@ func listOverviewHandler(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, http.StatusOK, lists)
 }
 
+func aboutHandler(w http.ResponseWriter, r *http.Request) {
+	var pld GenericPayload
+	pld.Payload = "v1.0"
+
+	jsonResponse(w, http.StatusOK, pld)
+}
+
+func setSharedUsersHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	listID := vars["id"]
+
+	accountID := r.Context().Value("accountID").(int)
+
+	var data []IntBoolTuple
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		log.Println("Invalid JSON body: ", err)
+		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Invalid JSON body"})
+		return
+	}
+
+	deletion := "delete from fnlst.permissions where list_id = $1"
+	_, err := pool.Exec(context.Background(), deletion, listID)
+	if err != nil {
+		log.Println("Error deleting perms: ", err)
+		return
+	}
+
+	insertion := "insert into fnlst.permissions (list_id, user_id, perm) values ($1, $2, 1)"
+	for _, item := range data {
+		if item.Value || item.Key == accountID {
+			_, err = pool.Exec(context.Background(), insertion, listID, item.Key)
+			if err != nil {
+				log.Println("Error creating permissions:", err)
+				jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+				return
+			}
+		}
+	}
+
+	jsonResponse(w, http.StatusOK, map[string]string{"success": "Settings saved successfully!"})
+}
+
+// select user_id from fnlst.users where list_id = id
+// then, those users should be sent "checked" to the form
+// instead of index-string tuples, use a payload that's got username, checked/unchecked
+// and send that as the array to the frontend
+func listUsersHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	listID := vars["id"]
+	sql := "select u.index, u.username, case when p.user_id is not null then true else false end as shared from fnlst.users u left join fnlst.permissions p on u.index = p.user_id and list_id = $1"
+	rows, err := pool.Query(context.Background(), sql, listID)
+	if err != nil {
+		log.Println("Error fetching users: ", err)
+		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		return
+	}
+	defer rows.Close()
+
+	var users []IndexStringBoolTriple
+	for rows.Next() {
+		var item IndexStringBoolTriple
+		if err := rows.Scan(&item.Index, &item.Username, &item.Shared); err != nil {
+			log.Default().Println("Error scanning row: ", err)
+			jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+			return
+		}
+		users = append(users, item)
+	}
+
+	if rows.Err() != nil {
+		log.Println("Error iterating over rows: ", rows.Err())
+		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, users)
+}
+
 // public endpoints
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
@@ -370,11 +439,4 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	jsonResponse(w, http.StatusOK, map[string]string{"success": "Logged out successfully"})
-}
-
-func aboutHandler(w http.ResponseWriter, r *http.Request) {
-	var pld GenericPayload
-	pld.Payload = "v1.0"
-
-	jsonResponse(w, http.StatusOK, pld)
 }
