@@ -337,6 +337,24 @@ async function toggleEditLineItem(id) {
     }
 }
 
+var xInitial = 0;
+
+function handleTouchStart(e){
+    e.preventDefault();
+    xInitial = e.changedTouches[0].screenX;
+}
+
+function handleTouchEnd(e){
+    e.preventDefault();
+    var diff = Math.abs(e.changedTouches[0].screenX - xInitial);
+    console.log(diff);
+    if (diff < 30){
+        return;
+    }
+    toggleStrikeThru(e.target.id);
+    return;
+}
+
 async function renderListContents(id) {
     const targetNode = document.getElementById("main");
     const navbar = document.getElementById("nav");
@@ -372,6 +390,8 @@ async function renderListContents(id) {
             editicon.classList.add('fa-pen-to-square');
             editicon.addEventListener('click', function () { toggleEditLineItem(item.itemid) });
             container.appendChild(editicon);
+            container.addEventListener('touchstart', handleTouchStart);
+            container.addEventListener('touchend', handleTouchEnd);
             frag.appendChild(container);
         });
         targetNode.appendChild(frag);
@@ -654,7 +674,7 @@ async function renderListOverview() {
 async function insertListDB(newLine){
     var payload = new Object();
     var inputs = newLine.getElementsByTagName("input");
-    payload.itemname = inputs[0].value;
+    payload.payload = inputs[0].value;
     
     const uri = `${endPoint}newlist`;
     await fetch(uri, {
@@ -667,11 +687,11 @@ async function insertListDB(newLine){
     })
         .then(response => response.json())
         .then(data => {
-            if(data.success === true) {
+            if(data.result) {
                 var para = document.createElement("p");
                 para.innerText = inputs[0].value;
                 newLine.replaceChildren(para);
-                newLine.id = data.message;
+                newLine.id = data.result;
             }
             else {
                 var frag = new DocumentFragment();
@@ -759,6 +779,7 @@ async function insertItem() {
 
     const savebtn = document.createElement('button');
     savebtn.setAttribute('type', 'button');
+    //what the fuck was i thinking
     const where = window.location.pathname;
         if (where === "/") {
             savebtn.addEventListener('click', (e) => {
