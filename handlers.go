@@ -193,7 +193,7 @@ func newListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonResponse(w, http.StatusOK, map[string]int{"result": idx})
+	jsonResponse(w, http.StatusOK, map[string]int{"success": idx})
 }
 
 func listviewHandler(w http.ResponseWriter, r *http.Request) {
