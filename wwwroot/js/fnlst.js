@@ -79,6 +79,15 @@ async function renderListSettingsLink() {
 function clearAndReRender(target) {
     target.replaceChildren();
 
+    //collapse navbar if expanded
+    var x = document.getElementById("nav");
+    x.className = "";
+        
+    const checkedlink = document.getElementById("remove-checked-btn");
+    if (checkedlink != null) {
+        checkedlink.remove();
+    }
+    
     const backlink = document.getElementById("back-btn");
     if (backlink != null) {
         backlink.remove();
@@ -109,7 +118,11 @@ async function renderAboutPage(){
     const ver = resp.payload;
     const para = document.createElement('p');
     para.innerText = `Welcome to Finalist ${ver}, the final list app you'll ever need.`;
-    target.appendChild(para);
+    const hthree = document.createElement('h3');
+    hthree.innerText = "Pro Tip";
+    const protips = document.createElement('p');
+    protips.innerText = "On mobile, when you are viewing the contents of a list, you can swipe left or right to cross-out that item.  Swiping again un-crosses it out.";
+    target.append(para, hthree, protips);
 }
 
 async function fetchListContents(id) {
@@ -153,11 +166,8 @@ async function fetchUsers(id) {
     return resp;
 }
 
-async function toggleStrikeThru(id) {
-    const children = document.getElementById(id).getElementsByTagName('p');
-    for (let child of children) {
-        child.classList.toggle('strike');
-    }
+async function toggleStrikeThru(elem) {
+    elem.classList.toggle('strike');
 }
 
 async function saveLineItem(id) {
@@ -267,6 +277,21 @@ async function actuallyDeleteLineItem(id) {
     }
 }
 
+async function removeCheckedItems(e){
+    e.preventDefault();
+    const target = document.getElementById("main");
+    const children = target.querySelectorAll('div');
+    for (const child of children) {
+        const checkbox = child.querySelector('input[type="checkbox"]');
+        if (checkbox && checkbox.checked) {
+            console.log("deleting " + child.id);
+            await actuallyDeleteLineItem(child.id);
+        }
+    }
+
+    return false;
+}
+
 function setEndOfContenteditable(contentEditableElement) {
     var range, selection;
     range = document.createRange();
@@ -325,6 +350,15 @@ async function toggleEditLineItem(id) {
         const para = document.createElement('p');
         para.innerText = contents;
         input.replaceWith(para);
+        para.addEventListener('touchstart', handleTouchStart);
+        para.addEventListener('touchend', handleTouchEnd);
+
+        //we've removed the previous input so this is the only one
+        const check = parent.getElementsByTagName('input')[0]; 
+        const cb = document.createElement('input');
+        cb.type = "checkbox";
+        check.replaceWith(cb);
+        cb.addEventListener('change', function () { toggleStrikeThru(para); });
 
         const buttons = document.getElementById(id).getElementsByTagName('button');
         while (buttons.length > 0) {
@@ -351,7 +385,7 @@ function handleTouchEnd(e){
     if (diff < 30){
         return;
     }
-    toggleStrikeThru(e.target.id);
+    toggleStrikeThru(e.target);
     return;
 }
 
@@ -366,6 +400,13 @@ async function renderListContents(id) {
     settingslink.id = "list-settings-btn";
     settingslink.innerText = "List Settings";
     navbar.insertBefore(settingslink, hamburger);
+
+    const removeCheckedLink = document.createElement('a');
+    removeCheckedLink.addEventListener('click', removeCheckedItems);
+    removeCheckedLink.id = "remove-checked-btn";
+    removeCheckedLink.href = `/list/${id}`;
+    removeCheckedLink.innerText = "Remove Checked";
+    navbar.insertBefore(removeCheckedLink, hamburger);
     
     const items = await fetchListContents(id);
     if (items != null  && items.error) {
@@ -383,15 +424,15 @@ async function renderListContents(id) {
             container.appendChild(p);
             const cb = document.createElement('input');
             cb.type = "checkbox";
-            cb.addEventListener('change', function () { toggleStrikeThru(item.itemid); });
+            cb.addEventListener('change', function () { toggleStrikeThru(p); });
             container.appendChild(cb);
             const editicon = document.createElement('i');
             editicon.classList.add('fa-regular');
             editicon.classList.add('fa-pen-to-square');
             editicon.addEventListener('click', function () { toggleEditLineItem(item.itemid) });
             container.appendChild(editicon);
-            container.addEventListener('touchstart', handleTouchStart);
-            container.addEventListener('touchend', handleTouchEnd);
+            p.addEventListener('touchstart', handleTouchStart);
+            p.addEventListener('touchend', handleTouchEnd);
             frag.appendChild(container);
         });
         targetNode.appendChild(frag);
@@ -688,9 +729,11 @@ async function insertListDB(newLine){
         .then(response => response.json())
         .then(data => {
             if(data.result) {
-                var para = document.createElement("p");
-                para.innerText = inputs[0].value;
-                newLine.replaceChildren(para);
+                var link = document.createElement("a");
+                link.innerText = inputs[0].value;
+                link.href = `/list/${data.result}`;
+                link.classList = "listlink";
+                newLine.replaceChildren(link);
                 newLine.id = data.result;
             }
             else {
@@ -739,7 +782,7 @@ async function insertListItemDB(newLine){
                 const frag = new DocumentFragment();
                 const cb = document.createElement('input');
                 cb.type = "checkbox";
-                cb.addEventListener('change', function () { toggleStrikeThru(data.result); });
+                cb.addEventListener('change', function () { toggleStrikeThru(para); });
                 frag.appendChild(cb);
                 const editicon = document.createElement('i');
                 editicon.classList.add('fa-regular');
