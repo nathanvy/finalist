@@ -27,6 +27,10 @@ body {
     flex-flow: wrap;
 }
 
+.lineitem p {
+    flex-grow: 1;
+}
+
 .lineitem input {
     margin-left: auto;
     margin-right: 1rem;
@@ -141,6 +145,11 @@ body {
 
     .lineitem input[type=checkbox] {
         display: none;
+    }
+
+    .lineitem .fa-regular {
+        font-size: 1.5rem;
+        padding-left: 1rem;
     }
 
     .lineitem i:last-child {
