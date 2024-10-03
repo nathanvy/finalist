@@ -284,7 +284,6 @@ async function removeCheckedItems(e){
     for (const child of children) {
         const checkbox = child.querySelector('input[type="checkbox"]');
         if (checkbox && checkbox.checked) {
-            console.log("deleting " + child.id);
             await actuallyDeleteLineItem(child.id);
         }
     }
