@@ -277,7 +277,7 @@ func listOverviewHandler(w http.ResponseWriter, r *http.Request) {
 
 func aboutHandler(w http.ResponseWriter, r *http.Request) {
 	var pld GenericPayload
-	pld.Payload = "v1.0"
+	pld.Payload = "v1.6"
 
 	jsonResponse(w, http.StatusOK, pld)
 }
