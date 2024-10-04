@@ -243,7 +243,8 @@ async function actuallyDeleteLineItem(id) {
     var listid = pathsegments[2];
     var payload = new Object();
     payload.id = id;
-    
+
+    console.log("Deleting " + id);
     const uri = `${endPoint}list/${listid}/delete/${id}`;
     const resp = await fetch(uri, {
         "headers": {
@@ -279,11 +280,12 @@ async function actuallyDeleteLineItem(id) {
 
 async function removeCheckedItems(e){
     e.preventDefault();
-    const target = document.getElementById("main");
-    const children = target.querySelectorAll('div');
+    const maindiv = document.getElementById("main");
+    const children = maindiv.querySelectorAll('div');
     for (const child of children) {
         const checkbox = child.querySelector('input[type="checkbox"]');
-        if (checkbox && checkbox.checked) {
+        const para = child.querySelector('p');
+        if ( (checkbox && checkbox.checked) || (para && para.classList.contains("strike")) ) {
             await actuallyDeleteLineItem(child.id);
         }
     }
@@ -380,7 +382,6 @@ function handleTouchStart(e){
 function handleTouchEnd(e){
     e.preventDefault();
     var diff = Math.abs(e.changedTouches[0].screenX - xInitial);
-    console.log(diff);
     if (diff < 30){
         return;
     }
@@ -777,7 +778,8 @@ async function insertListItemDB(newLine){
                 para.innerText = inputs[0].value;
                 newLine.replaceChildren(para);
                 newLine.id = data.result;
-
+                para.addEventListener('touchstart', handleTouchStart);
+                para.addEventListener('touchend', handleTouchEnd);
                 const frag = new DocumentFragment();
                 const cb = document.createElement('input');
                 cb.type = "checkbox";
