@@ -212,7 +212,7 @@ async function makeConfirmModal(id) {
     yesbtn.setAttribute('type', 'button');
     yesbtn.addEventListener('click', (e) => {
         e.preventDefault();
-        return actuallyDeleteLineItem(id);
+        return actuallyDeleteLineItem(parent);
     }, false);
     yesbtn.innerText = "Yes";
     
@@ -237,13 +237,13 @@ async function removeModal(modaldiv) {
     modaldiv.remove();
 }
 
-async function actuallyDeleteLineItem(id) {
+async function actuallyDeleteLineItem(elem) {
     var pathsegments = window.location.pathname.split("/");
     var listid = pathsegments[2];
     var payload = new Object();
-    payload.id = id;
+    payload.id = elem.id;
 
-    const uri = `${endPoint}list/${listid}/delete/${id}`;
+    const uri = `${endPoint}list/${listid}/delete/${elem.id}`;
     const resp = await fetch(uri, {
         "headers": {
             'Accept': 'application/json, text/plain',
@@ -253,9 +253,12 @@ async function actuallyDeleteLineItem(id) {
     });
     const jsonresponse = await resp.json();
     if( jsonresponse.success ) {
-        var target = document.getElementById(id);
-        target.replaceChildren();
-        target.remove();
+        if(document.contains(elem)){
+            elem.remove();
+        }
+        else {
+            console.log("document does not contain!");
+        }
     }
     else {
         var frag = new DocumentFragment();
@@ -278,12 +281,13 @@ async function actuallyDeleteLineItem(id) {
 
 async function removeCheckedItems(e){
     e.preventDefault();
+    e.stopPropagation();
     //const maindiv = document.getElementById("main");
     document.querySelectorAll('p.strike').forEach( async (para) => {
         // Find the parent div element (assumes the checkbox is inside a div)
         const parentDiv = para.closest('div');
         if (parentDiv) {
-            await actuallyDeleteLineItem(parentDiv.id);
+            await actuallyDeleteLineItem(parentDiv);
         }
     });
 
@@ -401,7 +405,7 @@ async function renderListContents(id) {
     const removeCheckedLink = document.createElement('a');
     removeCheckedLink.addEventListener('click', removeCheckedItems);
     removeCheckedLink.id = "remove-checked-btn";
-    removeCheckedLink.href = `/list/${id}`;
+    removeCheckedLink.href = 'javascript:void(0)';
     removeCheckedLink.innerText = "Remove Checked";
     navbar.insertBefore(removeCheckedLink, hamburger);
     
@@ -788,6 +792,7 @@ async function insertListItemDB(newLine){
                 editicon.addEventListener('click', function () { toggleEditLineItem(data.result) });
                 frag.appendChild(editicon);
                 newLine.appendChild(frag);
+                document.body.offsetHeight;
             }
             else {
                 var frag = new DocumentFragment();
@@ -823,21 +828,21 @@ async function insertItem() {
     //what the fuck was i thinking
     const where = window.location.pathname;
         if (where === "/") {
-            savebtn.addEventListener('click', (e) => {
+            savebtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 insertListDB(newLine);
             });
         } else {
-            savebtn.addEventListener('click', (e) => {
+            savebtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                insertListItemDB(newLine);
+                await insertListItemDB(newLine);
             });
         }
     savebtn.innerText = "Save";
 
     const cancelbtn = document.createElement('button');
     cancelbtn.setAttribute('type', 'button');
-    cancelbtn.addEventListener('click', (e) => {
+    cancelbtn.addEventListener('click', async (e) => {
         e.preventDefault();
         newLine.replaceChildren();
         newLine.remove();
@@ -918,11 +923,23 @@ async function togglenav() {
     }
 }
 
+// Set up the MutationObserver at the top level
+// const observer = new MutationObserver((mutationsList) => {
+//     mutationsList.forEach((mutation) => {
+//         mutation.removedNodes.forEach((node) => {
+//             if (node.nodeType === 1) {
+//                 console.log('Element removed from DOM:', node);
+//             }
+//         });
+//     });
+// });
+
 document.addEventListener('click', route, false);
 window.addEventListener('popstate', function () {
     handleLocation();
 });
 
 window.addEventListener('DOMContentLoaded', function () {
+    //    observer.observe(document.body, { childList: true, subtree: true });
     handleLocation();
 });
