@@ -43,7 +43,6 @@ async function doLogout(){
         .then((response) => {
             if(response.bodyUsed){
                 const j = response.json();
-                console.log(j);
                 return j;
             }
             else {
@@ -244,7 +243,6 @@ async function actuallyDeleteLineItem(id) {
     var payload = new Object();
     payload.id = id;
 
-    console.log("Deleting " + id);
     const uri = `${endPoint}list/${listid}/delete/${id}`;
     const resp = await fetch(uri, {
         "headers": {
@@ -280,15 +278,14 @@ async function actuallyDeleteLineItem(id) {
 
 async function removeCheckedItems(e){
     e.preventDefault();
-    const maindiv = document.getElementById("main");
-    const children = maindiv.querySelectorAll('div');
-    for (const child of children) {
-        const checkbox = child.querySelector('input[type="checkbox"]');
-        const para = child.querySelector('p');
-        if ( (checkbox && checkbox.checked) || (para && para.classList.contains("strike")) ) {
-            await actuallyDeleteLineItem(child.id);
+    //const maindiv = document.getElementById("main");
+    document.querySelectorAll('p.strike').forEach( async (para) => {
+        // Find the parent div element (assumes the checkbox is inside a div)
+        const parentDiv = para.closest('div');
+        if (parentDiv) {
+            await actuallyDeleteLineItem(parentDiv.id);
         }
-    }
+    });
 
     return false;
 }
@@ -728,13 +725,13 @@ async function insertListDB(newLine){
     })
         .then(response => response.json())
         .then(data => {
-            if(data.result) {
+            if(data.success) {
                 var link = document.createElement("a");
                 link.innerText = inputs[0].value;
-                link.href = `/list/${data.result}`;
+                link.href = `/list/${data.success}`;
                 link.classList = "listlink";
                 newLine.replaceChildren(link);
-                newLine.id = data.result;
+                newLine.id = data.success;
             }
             else {
                 var frag = new DocumentFragment();
