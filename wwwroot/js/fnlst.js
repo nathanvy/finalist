@@ -291,6 +291,7 @@ async function removeCheckedItems(e){
         }
     });
 
+    togglenav();
     return false;
 }
 
