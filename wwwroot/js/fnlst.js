@@ -854,6 +854,7 @@ async function insertItem() {
     newLine.append(input, savebtn, cancelbtn);
     parent.insertBefore(frag, document.getElementById('plus-btn'));
     input.focus();
+    window.scrollTo(0, document.body.scrollHeight);
 }
 
 async function renderAddButton() {
