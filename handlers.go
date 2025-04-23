@@ -214,7 +214,7 @@ func listviewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := pool.Query(context.Background(), "select index, content from fnlst.contentlist where listnumber = $1", listID)
+	rows, err := pool.Query(context.Background(), "select index, content from fnlst.contentlist where listnumber = $1 order by index asc", listID)
 	if err != nil {
 		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
 		log.Println("Error querying the database:", err)
