@@ -398,6 +398,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	now := time.Now().Format("2006-01-02 15:04:05")
+	_, err = pool.Exec(context.Background(), "update fnlst.users set lastlogin = $1 where index = $2", now, accountID)
+	if err != nil {
+		log.Println("Error logging lastlogin:", err)
+		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		return
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "auth",
 		Value:    sessid,
